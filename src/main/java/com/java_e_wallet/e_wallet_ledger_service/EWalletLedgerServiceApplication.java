@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+import com.java_e_wallet.e_wallet_ledger_service.adaptor.Kafka;
 import com.java_e_wallet.e_wallet_ledger_service.config.Config;
 
 @SpringBootApplication
@@ -12,6 +13,12 @@ public class EWalletLedgerServiceApplication {
 
 	public static void main(String[] args) {
 		Config.Init();
+
+		Kafka.Init();
+
+		new Thread(() -> {
+			Kafka.ListenTransactions();
+		}).start();
 
 		SpringApplication.run(EWalletLedgerServiceApplication.class, args);
 	}
