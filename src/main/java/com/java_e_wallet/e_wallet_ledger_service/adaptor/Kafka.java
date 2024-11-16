@@ -16,16 +16,24 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.java_e_wallet.e_wallet_ledger_service.config.Config;
 import com.java_e_wallet.e_wallet_ledger_service.model.TransactionSummary;
+import com.java_e_wallet.e_wallet_ledger_service.service.LedgerService;
 
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.KafkaJsonDeserializerConfig;
+import jakarta.annotation.PostConstruct;
 
 @Component
 public class Kafka {
-    private static Consumer<String, JsonNode> consumer;
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private Consumer<String, JsonNode> consumer;
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    public static void Init() {
+    private final LedgerService ledgerService;
+
+    public Kafka(LedgerService ledgerService) {
+        this.ledgerService = ledgerService;
+    }
+
+    private void Init() {
         Properties properties = new Properties();
 
         properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, Config.getKafkaAddress());
@@ -38,8 +46,7 @@ public class Kafka {
         consumer = new KafkaConsumer<>(properties);
     }
 
-
-    public static void ListenTransactions() {
+    private void ListenTransactions() {
         if (consumer == null) {
             System.err.println("kafka not initialized");
         }
@@ -52,10 +59,16 @@ public class Kafka {
 
                 records.forEach(record -> {
                     try {
-                        TransactionSummary summary = mapper.convertValue(record.value(), new TypeReference<TransactionSummary>() {});
+                        TransactionSummary summary = mapper.convertValue(record.value(),
+                                new TypeReference<TransactionSummary>() {
+                                });
 
-                        System.out.println("test kafka");
-                        System.out.println(summary.getRequestId());
+                        try {
+                            ledgerService.insertLedger(summary);
+                        } catch (Exception ex) {
+                            System.out.printf("failed to write ledger for request id %s: %s", summary.getRequestId(),
+                                    ex.getMessage());
+                        }
                     } catch (Exception ex) {
                         System.out.println(ex);
                     }
@@ -66,6 +79,15 @@ public class Kafka {
         } finally {
             consumer.close();
         }
+    }
+
+    @PostConstruct
+    public void StartListening() {
+        Init();
+
+        new Thread(() -> {
+            ListenTransactions();
+        }).start();
     }
 
 }
