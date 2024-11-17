@@ -1,6 +1,7 @@
 package com.java_e_wallet.e_wallet_ledger_service.repository;
 
 import java.time.Instant;
+import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -23,4 +24,7 @@ public interface LedgerRepository extends JpaRepository<Ledger, Long> {
         insertLedger(ledger.getUserId(), ledger.getRequestId(), ledger.getAsset(), ledger.getAmount(),
                 ledger.getCreatedAt(), Instant.now().toEpochMilli());
     }
+
+    @Query(value = "SELECT ledger_id, user_id, request_id, asset, amount, created_at, updated_at, deleted_at FROM ledgers WHERE user_id = ?1 AND deleted_at = 0", nativeQuery = true)
+    List<Ledger> getUserLedgers(Long userId);
 }

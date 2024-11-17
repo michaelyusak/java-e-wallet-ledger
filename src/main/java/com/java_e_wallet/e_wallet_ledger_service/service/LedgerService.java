@@ -1,5 +1,7 @@
 package com.java_e_wallet.e_wallet_ledger_service.service;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,5 +29,9 @@ public class LedgerService {
         transactionSummary.getAsset(), transactionSummary.getAmount(), transactionSummary.getCreatedAt());
 
         ledgerRepository.insertLedger(recipientLedger);
+    }
+
+    public List<Ledger> getUserLedgers(Long userId) {
+        return ledgerRepository.getUserLedgers(userId);
     }
 }
